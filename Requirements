@@ -1,5 +1,7 @@
-streamlit>=1.28.0
-pygooglenews>=0.1.2
-feedparser>=6.0.0
-dateparser>=1.0.0
-beautifulsoup4>=4.9.1
+streamlit
+feedparser==6.0.10
+dateparser==1.1.8
+beautifulsoup4==4.12.2
+requests
+lxml
+pygooglenews==0.1.2
