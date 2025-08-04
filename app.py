@@ -1,5 +1,5 @@
 import streamlit as st
-from pygooglenews import GoogleNews
+from gnews import GNews
 import re
 from datetime import datetime
 
@@ -51,7 +51,11 @@ def clean_text(text):
 
 def search_jerry_moran_news(days, exclude_gov, exclude_quiver):
     """Search for Jerry Moran news with multiple search variations"""
-    gn = GoogleNews(lang='en', country='US')
+    google_news = GNews()
+    google_news.period = f'{days}d'
+    google_news.results = 100
+    google_news.country = 'US'
+    google_news.language = 'en'
 
     # All search terms
     search_terms = [
@@ -76,11 +80,18 @@ def search_jerry_moran_news(days, exclude_gov, exclude_quiver):
         progress_bar.progress((i + 1) / len(search_terms))
 
         try:
-            results = gn.search(search_term, when=f'{days}d')
-            for entry in results['entries']:
-                if entry['link'] not in seen_links:
-                    all_entries.append(entry)
-                    seen_links.add(entry['link'])
+            results = google_news.get_news(search_term)
+            for entry in results:
+                # Convert gnews format to match your existing code
+                if entry['url'] not in seen_links:
+                    converted_entry = {
+                        'title': entry['title'],
+                        'link': entry['url'],
+                        'source': {'title': entry['publisher']['title']},
+                        'published': entry['published date']
+                    }
+                    all_entries.append(converted_entry)
+                    seen_links.add(entry['url'])
         except Exception as e:
             st.warning(f"Error searching for '{search_term}': {e}")
 
@@ -121,7 +132,7 @@ def search_jerry_moran_news(days, exclude_gov, exclude_quiver):
             'media': safe_media,
             'link': link,
             'is_kansas': is_kansas,
-            'published': entry.get('published', 'Unknown date')
+            'published': entry['published']
         })
 
     return filtered_results, len(all_entries)
@@ -143,12 +154,12 @@ if st.sidebar.button("🔍 Search Jerry Moran News", type="primary"):
         st.markdown("---")
 
         for i, article in enumerate(results, 1):
-            kansas_indicator = " ⭐" if article['is_kansas'] else ""
+            kansas_indicator = "*" if article['is_kansas'] else ""
 
             # Create expandable section for each article
-            with st.expander(f"{i}. {article['media']}{kansas_indicator}: {article['title'][:80]}..."):
+            with st.expander(f"{i}. {kansas_indicator}{article['media']}: {article['title'][:80]}..."):
                 st.markdown(f"""
-                **Media Source:** {article['media']}{kansas_indicator}
+                **Media Source:** {kansas_indicator}{article['media']}
                 **Title:** {article['title']}
                 **Published:** {article['published']}
                 **Link:** [{article['title']}]({article['link']})
@@ -160,7 +171,7 @@ if st.sidebar.button("🔍 Search Jerry Moran News", type="primary"):
         markdown_content += f"*Time range: Last {days} days*\n\n"
 
         for article in results:
-            kansas_indicator = " ⭐" if article['is_kansas'] else ""
+            kansas_indicator = "*" if article['is_kansas'] else ""
             markdown_content += f"- {kansas_indicator}{article['media']}: [{article['title']}]({article['link']})\n"
 
         # Download buttons
@@ -178,7 +189,7 @@ if st.sidebar.button("🔍 Search Jerry Moran News", type="primary"):
             # Create simple text version
             text_content = "Jerry Moran News\n" + "="*50 + "\n\n"
             for article in results:
-                kansas_indicator = " *" if article['is_kansas'] else ""
+                kansas_indicator = "*" if article['is_kansas'] else ""
                 text_content += f"{kansas_indicator}{article['media']}: {article['title']}\n{article['link']}\n\n"
 
             st.download_button(
@@ -205,10 +216,10 @@ st.sidebar.info("""
 """)
 
 st.sidebar.markdown("---")
-st.sidebar.info("⭐ = Kansas news outlet")
+st.sidebar.info("* = Kansas news outlet")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("Built with Streamlit & pygooglenews")
+st.sidebar.markdown("Built with Streamlit & GNews")
 
 # Show instructions if no search has been run yet
 if 'button' not in st.session_state:
@@ -218,8 +229,16 @@ if 'button' not in st.session_state:
     1. **Select time range** in the sidebar (1-30 days)
     2. **Choose filters** to exclude government sources or Quiver Quantitative
     3. **Click "Search"** to find Jerry Moran news across multiple search variations
-    4. **View results** with Kansas outlets marked with ⭐
+    4. **View results** with Kansas outlets marked with * before the media name
     5. **Download** results as Markdown or Text files
 
     The app searches multiple variations of Jerry Moran's name to ensure comprehensive coverage.
+
+    **Kansas outlets will be highlighted with * including:**
+    - Kansas Reflector
+    - The Topeka Capital-Journal
+    - The Wichita Eagle
+    - KCLY Radio, KWCH, KSN-TV
+    - Kansas City Star
+    - And many more local Kansas news sources
     """)
